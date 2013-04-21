@@ -103,24 +103,27 @@ class TestBuilder {
     }
 
     public static function doBuildCheck(i:Int) {
-        #if macro
+#if macro
+        trace ('doing build check');
         var fields = Context.getBuildFields();
-        return fields;
 
-        var field = fields.filter(function(f) return Context.getPosInfos(f.pos).let(function(_) return _.min < i && _.max > i));
-        if (field.count() == 0)
-            throw "No fields were matched";
-        switch (field.list().first().kind) {
-        case FFun(f):
-            var typer = hxassist.TypeParser.forwardTypeExpression2(f.expr);
+        var fields = fields.partition(function(f) return Context.getPosInfos(f.pos).let(function(_) return _.min < i && _.max > i));
 
-        switch (typer(i, false)) {
-        case Some(v): trace("Found type: " + v);
-        case None: throw ("No type found at point");
-        }
-        default: throw "not handled yet";
-        }
-        return fields;
-        #end
+        trace('found ${fields._0.count()} fields');
+
+        return fields._0.map(function(f) {
+                f.kind = switch (f.kind) {
+                case FFun(f):
+                var e = f.expr;
+                var i = {expr:EConst(CInt(""+i)), pos:Context.currentPos()};
+                f.expr = macro test.TestBuilder.checkExpr($i, false, $e);
+                FFun(f);
+                default: f.kind;
+                }
+                return f;
+            }).concat(fields._1).array();
+
+        
+#end
     }
 }
