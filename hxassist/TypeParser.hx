@@ -86,6 +86,7 @@ class TypeParser {
        Thanks to CauÃª for the technique!
     **/
         public static function forwardTypeExpression2(e:Expr):Int->?Bool->Option<haxe.macro.Type> {
+
         var basepos = e.pos.getPosInfos();
         var cpos = Context.currentPos();
         function asIdent(s:String) return {expr:EConst(CIdent(s)), pos:cpos};
@@ -101,7 +102,7 @@ class TypeParser {
 
             var ident = {expr:EConst(CIdent(s)), pos:cpos};
 
-            return macro @:pos(e.pos) {$ident = $e;};
+            return macro {$ident = $e;};
         }
 
         var ret_capture = null;
@@ -147,6 +148,8 @@ class TypeParser {
 
         trace(exprToStr(capt));
 
+
+
         var reg = ~/__type__([^_]*)_([^_]*)_?([^_]*)?/;
 
         function get3(s:String) {
@@ -158,15 +161,21 @@ class TypeParser {
                 {min:min, max:max, argname:argname};
             }
         }
-        
+
         var vdecl = {expr:EVars(toType.map(Fn({name:_, type:null, expr:null}))), pos:cpos};
         var typed:Array<{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}> = 
             [for (val in toType) {
                     var ident = asIdent(val);
-                    var eval = macro { $vdecl; $capt; $ident; };
-                    var type = try Context.typeof(eval) catch(e:Dynamic) null;
+                    var type = try {
+                        var eval = macro { $vdecl; $capt; $ident; };
+                        Context.typeof(eval);
+                    } catch(e:Dynamic) {
+                        null;
+                    }
                     {type:type, pos:get3(val)};
             }];
+            
+
             
             /* Everything fails to type if a single item fails .. This is not safe
             var odecl = {expr:EObjectDecl({toType.map(Fn({field:_, expr:{expr:EConst(CIdent(_)), pos:cpos}})); [];}), pos:cpos};
