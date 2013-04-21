@@ -53,6 +53,20 @@ class FileUtils {
         return file_name_sans_ext(file_name_nondirectory(file));
     }
 
+    public static function file_within_path(file:String, path:String) {
+        return sanitize(file).fullPath().indexOf(sanitize(path).fullPath()) == 0;
+    }
+
+    public static function file_relative_to_path(file:String, path:String) {
+        var file = sanitize(file).fullPath();
+        var path = sanitize(path).fullPath();
+        return StringTools.replace(file, path, "");
+    } 
+
+    public static function file_represents_dir(file:String) {
+        return file.lastIndexOf("/") == file.length - 1;
+    }
+
     /**
        Finds all files upwards matching PATTERN
        Files are returned in oreder of closest to furthest

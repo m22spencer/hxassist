@@ -11,11 +11,16 @@ class Run {
 
    
     function new(args:Iterable<String>) {
+        trace(IList.ilist(args));
         //Get lib path from end of args 
         var list = IList.ilist(args).reverse();
         var expath = list.head();
+        var libdir = Sys.getCwd();
         Sys.setCwd(expath);
         var list = list.tail().reverse();
+
+        var vfs = new VFS('${libdir}temp836/');
+        vfs.addClasspath(expath);
 
         function readArgs(args:IList<String>) {
             Alg.match(switch (args) {
@@ -30,6 +35,12 @@ class Run {
                             "haxe.macro.Compiler.addMetadata('@:build(test.TestBuilder.doBuildCheck("+pos+"))', '"+tpath+"')"]);
                 
                     Sys.exit(0);
+                    readArgs(l);
+                case {"--source"; file; contents; l;}:
+                    vfs.modify(file, function(s) return utils.Base64.decode(contents));
+                    readArgs(l);
+                case {"--write"; l;}:
+                    vfs.writeToFileSystem();
                     readArgs(l);
                 case {cmd; _;}:
                     trace('unknown argument $cmd');
