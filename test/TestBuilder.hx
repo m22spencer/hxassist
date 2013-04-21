@@ -5,8 +5,10 @@ import haxe.macro.Context;
 using Lambda;
 using Alg;
 import Alg.Fn;
+using sys.FileSystem;
 
 class TestBuilder {
+    #if macro
     /**
        Builds each toplevel statement as a separate test.
        Optional expressiont to be evaluated afterward can be passed in
@@ -53,9 +55,25 @@ class TestBuilder {
         for (elem in source) out = Lambda.concat(out, f(elem));
         return out;
     }
+    #end
+
+    macro public static function checkExpr(i:Int, b:Bool, expr:Expr) {
+        
+        #if macro
+        var typer = hxassist.TypeParser.forwardTypeExpression2(expr);
+
+        switch (typer(i, b)) {
+        case Some(v): trace(v);
+        case None: throw ("No type found at point");
+        }
+        return expr;
+        #end
+    }
 
     macro public static function doCheck(s:String, i:Int) {
+        #if macro
         //OnGenerate is not called during --display mode. We have to use primative completion
+        var s = s.fullPath();
         Context.onGenerate(function(types) {
                 var i = i;
                 for (type in types) {
@@ -63,8 +81,7 @@ class TestBuilder {
                     case TInst(t,_):
                         var t = t.get();
                         var file = Std.string(Context.getPosInfos(t.pos).file);
-                        if (s == Context.getPosInfos(t.pos).file) {
-                            trace('matched file');
+                        if (s == Context.getPosInfos(t.pos).file.fullPath()) {
                             var fields = t.statics.get()
                                 .concat(t.fields.get())
                                 .concat(t.constructor!=null?[t.constructor.get()]:[]);
@@ -75,22 +92,35 @@ class TestBuilder {
                             var expr = expr.expr();
 
                             var expr = Context.getTypedExpr(expr);
-
-                            trace("Marker beginning " + sys.io.File.read(s, true).readAll().toString()
-                                .substr(i, 50));
-
-                            var typer = hxassist.TypeParser.forwardTypeExpression2(expr);
-
-                            switch (typer(i, false)) {
-                            case Some(v): trace(v);
-                            case None: trace("No type found at point");
-                            }
                         }
                     default:
                     }
                 }
             });
+        #end
 
         return macro null;
+    }
+
+    public static function doBuildCheck(i:Int) {
+        #if macro
+        var fields = Context.getBuildFields();
+        return fields;
+
+        var field = fields.filter(function(f) return Context.getPosInfos(f.pos).let(function(_) return _.min < i && _.max > i));
+        if (field.count() == 0)
+            throw "No fields were matched";
+        switch (field.list().first().kind) {
+        case FFun(f):
+            var typer = hxassist.TypeParser.forwardTypeExpression2(f.expr);
+
+        switch (typer(i, false)) {
+        case Some(v): trace("Found type: " + v);
+        case None: throw ("No type found at point");
+        }
+        default: throw "not handled yet";
+        }
+        return fields;
+        #end
     }
 }

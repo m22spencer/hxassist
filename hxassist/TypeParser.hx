@@ -53,7 +53,6 @@ class TypeParser {
         case None: 'Unable to find expression at $point';
         }
     }
-
     /*
     static var init = function() {
         var typer = forwardTypeExpression2(macro Lambda.mapi([3.5], function(i,x) return x+""));
@@ -79,11 +78,14 @@ class TypeParser {
 
        The final type is then split up and reconnected into a final type for each position
 
-       (Note that in the actual macro, names look as so:  __type__$min__$max_$(argument_name|ret)?)
+       (Note that in the actual macro, names look as so:  __type__$min__$max_$(index|ret))
 
-       Thanks to Cauê for the technique!
+       Function arity is referred to as so:
+       funtion(1, 2):0
+
+       Thanks to CauÃª for the technique!
     **/
-    public static function forwardTypeExpression2(e:Expr) {
+        public static function forwardTypeExpression2(e:Expr):Int->?Bool->Option<haxe.macro.Type> {
         var basepos = e.pos.getPosInfos();
         var cpos = Context.currentPos();
         function asIdent(s:String) return {expr:EConst(CIdent(s)), pos:cpos};
@@ -128,6 +130,9 @@ class TypeParser {
                 {expr:EReturn(inner), pos:cpos};
                 
             case EVars(_): e.map(loop);     //can't type statements
+            case EIn(e1, e2): 
+
+                {expr:EIn(e1, capture_map(e2, loop)), pos:cpos};
                 
                 /* We skip these for now since they cause issues! */
             case EField(_, _): e.map(loop); //Tries to type packages
@@ -140,16 +145,7 @@ class TypeParser {
         }
         var capt = loop(e);
 
-        var vdecl = {expr:EVars(toType.map(Fn({name:_, type:null, expr:null}))), pos:cpos};
-        var odecl = {expr:EObjectDecl(toType.map(Fn({field:_, expr:{expr:EConst(CIdent(_)), pos:cpos}}))), pos:cpos};
-        var eval = macro {
-            $vdecl;
-            $capt;
-            $odecl;
-        }
-
-        trace(exprToStr(eval));
-        var typeAll = Context.typeof(eval);
+        trace(exprToStr(capt));
 
         var reg = ~/__type__([^_]*)_([^_]*)_?([^_]*)?/;
 
@@ -162,6 +158,28 @@ class TypeParser {
                 {min:min, max:max, argname:argname};
             }
         }
+        
+        var vdecl = {expr:EVars(toType.map(Fn({name:_, type:null, expr:null}))), pos:cpos};
+        var typed:Array<{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}> = 
+            [for (val in toType) {
+                    var ident = asIdent(val);
+                    var eval = macro { $vdecl; $capt; $ident; };
+                    var type = try Context.typeof(eval) catch(e:Dynamic) null;
+                    {type:type, pos:get3(val)};
+            }];
+            
+            /* Everything fails to type if a single item fails .. This is not safe
+            var odecl = {expr:EObjectDecl({toType.map(Fn({field:_, expr:{expr:EConst(CIdent(_)), pos:cpos}})); [];}), pos:cpos};
+        var eval = macro {
+            $vdecl;
+            $capt;
+            $odecl;
+        }
+
+        trace(exprToStr(eval));
+        var typeAll = Context.typeof(eval);
+
+        
 
         var typed = switch (typeAll) {
         case TAnonymous(t):
@@ -169,9 +187,17 @@ class TypeParser {
         .map(Fn({type:_.type, pos:get3(_.name)}));
         case _: throw "impossible";
         }
+            */
 
-        var map:Map<String, Iterable<{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}>> =
-            Alg.toMapMulti(typed, function(e) return e.pos.min + ":" + e.pos.max);
+        var map = new haxe.ds.StringMap<Array<{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}>>();
+
+        function write(x:{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}) {
+            var key = x.pos.min + ":" + x.pos.max;
+            if (!map.exists(key)) { map.set(key,[]); }
+            map.get(key).push(x);
+        }
+        
+        typed.iter(Fn(write(_)));
 
         var types = map.array();
 
@@ -181,17 +207,18 @@ class TypeParser {
             return if (set.length == 0) None;
             else {
                 var types = set.first();
-                if (types.count() == 1) Some(types.list().first().type);
+                if (types.length == 1) Some(types.list().first().type);
                 else {
                     //This is a lambda expression
-                    var funtypes = types.partition(Fn(_.pos.argname != "ret"));
+                    var rettype:Type = if (types.exists(Fn(_.pos.argname == "ret"))) {
+                        //Value returning function
+                        var rett = types.filter(Fn(_.pos.argname == "ret"));
+                        types = types.filter(Fn(_.pos.argname != "ret"));
+                        rett.list().first().type;
+                    } else haxe.macro.ComplexTypeTools.toType(macro : Void);
 
-                    var rettype = if (funtypes._1.count()==0) haxe.macro.ComplexTypeTools.toType(macro :Void);
-                    else funtypes._1.first().type;
-
-                    var args = funtypes._0.map(Fn({t:_type, opt:false, name:_pos.argname}));
-
-                    Some(TFun(args.array(), rettype));
+                    //FIXME this does not handle optional types yet
+                    Some(TFun(types.map(Fn({t:_.type, opt:false, name:_.pos.argname})), rettype));
                 }
             }
         }

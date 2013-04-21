@@ -26,8 +26,10 @@ class Run {
                     var pos = Std.parseInt(sp[1]);
                     var file = sp[0];
 
+                    trace(pos);
+
                     AutoMake.fromFile(file)
-                        (["-dce", "no",  "-D", "no-copt", "--macro", 'test.TestBuilder.doCheck(\'$file\', $pos)']);
+                        (["-dce", "no",  "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/", "--macro", 'test.TestBuilder.doCheck(\'$file\', $pos)']);
                 
                     Sys.exit(0);
                     readArgs(l);

@@ -69,10 +69,10 @@ class Alg {
     }
 
     macro public static function toMapMulti(source, keySelector) {
-        return macro {
+        return macro @:pos(source.pos) {
             var m = new Map(); 
-            for (elem in source) {
-                var key = f(elem);
+            for (elem in $source) {
+                var key = $keySelector(elem);
                 if (!m.exists(key)) m.set(key, []);
                 else m.get(key).push(elem);
             }
