@@ -45,7 +45,45 @@ class Alg {
        Allows the binding of a value without exiting the expression
        Ex: 10.let(function(x) return x + 20) //30
     **/
-    public static function let<T,K>(v:T, f:T->K):K return f(v); 
+    public static function let<T,K>(v:T, f:T->K):K return f(v);
+
+    /**
+       Runs lambda f over each element in souce
+       building at tuple containing two iterables
+       _0 of true elements
+       _1 of false elements
+     **/
+    public static function partition<T>(source:Iterable<T>, f:T->Bool):{_0:Iterable<T>, _1:Iterable<T>} {
+        var left = [];
+        var right = [];
+        for (elem in source) {
+            if (f(elem)) left.push(elem);
+            else right.push(elem);
+        }
+        return {_0:left, _1:right};
+    }
+    
+    macro public static function toMap(source, keySelector) {
+        return macro [for (elem in $source)
+                $keySelector(elem) => elem];
+    }
+
+    macro public static function toMapMulti(source, keySelector) {
+        return macro {
+            var m = new Map(); 
+            for (elem in source) {
+                var key = f(elem);
+                if (!m.exists(key)) m.set(key, []);
+                else m.get(key).push(elem);
+            }
+            return m;
+        }
+    }
+
+    public static function first<T>(source:Iterable<T>) {
+        for (elem in source) return elem;
+        throw "Out of bounds. source contains no elements";
+    }
 
     /**
        Allow a pattern match to work on IList<T> with {x; xs;} style
