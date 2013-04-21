@@ -79,10 +79,7 @@ class TypeParser {
 
        The final type is then split up and reconnected into a final type for each position
 
-       (Note that in the actual macro, names look as so:  __type__$min__$max_$(index|ret))
-
-       Function arity is referred to as so:
-       funtion(1, 2):0
+       (Note that in the actual macro, names look as so:  __type__$min__$max_$(argument_name|ret)?)
 
        Thanks to Cauê for the technique!
     **/
