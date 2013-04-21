@@ -132,7 +132,7 @@ class TypeParser {
                 
                 /* We skip these for now since they cause issues! */
             case EField(_, _): e.map(loop); //Tries to type packages
-            case EConst(_): e.map(loop);    //(part of the above fix)
+            case EConst(CIdent(_)): e.map(loop);    //(part of the above fix)
 
             case EBlock(_): e.map(loop);    //Causes missing return errors
             case _: 
