@@ -63,7 +63,14 @@ class TestBuilder {
         var typer = hxassist.TypeParser.forwardTypeExpression2(expr);
 
         switch (typer(i, b)) {
-        case Some(v): trace(v);
+        case Some(v):
+            switch (v) {
+            case TInst(t,_):
+                var doc = t.get().doc;
+                trace(v + "\n" + doc);
+            default: trace(v);
+            }
+
         case None: throw ("No type found at point");
         }
         return expr;
