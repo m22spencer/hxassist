@@ -55,11 +55,17 @@ class TypeParser {
     }
 
     static var init = function() {
-        trace(forwardTypeExpression2(macro Lambda.mapi([0], function(i,x) return x+""), 17));
+        var typer = forwardTypeExpression2(macro Lambda.mapi([3.5], function(i,x) return x+""));
+        switch (typer(19, true)) {
+        case Some(t): trace(printType(t));
+        case _: trace('No type found');
+        }
     }();
 
     /**
-       Types all expressions withing E
+       Types all expressions within E
+       returns a lamda for matching a byte position to a type
+       lambda (point, useLocal)
 
        The macro breaks the following:
        bind(function(x) return x + "")
@@ -73,11 +79,13 @@ class TypeParser {
 
        (Note that in the actual macro, names look as so:  __type__$min__$max_$(index|ret))
 
+       Function arity is referred to as so:
+       funtion(1, 2):0
+
        Thanks to Cauê for the technique!
     **/
-    public static function forwardTypeExpression2(e:Expr, point:Int) {
-        var pos = e.pos.getPosInfos();
-        var point = point + pos.min; 
+    public static function forwardTypeExpression2(e:Expr) {
+        var basepos = e.pos.getPosInfos();
         var cpos = Context.currentPos();
         function asIdent(s:String) return {expr:EConst(CIdent(s)), pos:cpos};
         var toType:Array<String> = [];
@@ -98,7 +106,7 @@ class TypeParser {
         function loop(e:Expr) {
             return switch (e.expr) {
             case EFunction(fname, f):
-                var captures = f.args.mapi(function(i,arg) return {name:arg.name, capture:capture_name(e) + '_$i'});
+                var captures = f.args.mapi(function(i,arg) return {name:arg.name, capture:capture_name(e) + "_" + arg.name});
                 ret_capture = capture_name(e) + '_ret';
                 captures.iter(function(_) return toType.push(_.capture));
                 var e = loop(f.expr);
@@ -142,8 +150,8 @@ class TypeParser {
             else {
                 var min = reg.matched(1).parseInt();
                 var max = reg.matched(2).parseInt();
-                var arity = reg.matched(3).parseInt();
-                {min:min, max:max, arity:arity};
+                var argname = reg.matched(3);
+                {min:min, max:max, argname:argname};
             }
         }
 
@@ -154,15 +162,38 @@ class TypeParser {
         case _: throw "impossible";
         }
 
-        trace(1878 - pos.min);
-        trace(typed);
+        var map = new haxe.ds.StringMap<Array<{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}>>();
+
+        function write(x:{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}) {
+            var key = x.pos.min + ":" + x.pos.max;
+            if (!map.exists(key)) { map.set(key,[]); }
+            map.get(key).push(x);
+        }
         
-        //TODO: Convert this into a dictionary of actual types
-        var set = typed.filter(Fn(_.pos.min == point));
-        return if (set.length == 0) [];
-        else {
-            var fst = set.list().first().pos;
-            typed.filter(Fn(_.pos.min == fst.min && _.pos.max == fst.max));
+        typed.iter(Fn(write(_)));
+
+        var types = map.array();
+
+        return function(point:Int, local:Bool = false):Option<Type> {
+            var point = if (local) point + basepos.min; else point;
+            var set = map.filter(function(t) return t.list().first().pos.min == point);
+            return if (set.length == 0) None;
+            else {
+                var types = set.first();
+                if (types.length == 1) Some(types.list().first().type);
+                else {
+                    //This is a lambda expression
+                    var rettype:Type = if (types.exists(Fn(_.pos.argname == "ret"))) {
+                        //Value returning function
+                        var rett = types.filter(Fn(_.pos.argname == "ret"));
+                        types = types.filter(Fn(_.pos.argname != "ret"));
+                        rett.list().first().type;
+                    } else haxe.macro.ComplexTypeTools.toType(macro : Void);
+
+                    //FIXME this does not handle optional types yet
+                    Some(TFun(types.map(Fn({t:_.type, opt:false, name:_.pos.argname})), rettype));
+                }
+            }
         }
     }
 
