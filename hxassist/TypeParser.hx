@@ -54,7 +54,6 @@ class TypeParser {
         }
     }
 
-    /*
     static var init = function() {
         var typer = forwardTypeExpression2(macro Lambda.mapi([3.5], function(i,x) return x+""));
         switch (typer(19, true)) {
@@ -62,7 +61,6 @@ class TypeParser {
         case _: trace('No type found');
         }
     }();
-    */
     
     /**
        Types all expressions within E
@@ -96,12 +94,13 @@ class TypeParser {
 
         function capture_map(e:Expr, f:Expr->Expr) {
             var s = capture_name(e);
-            toType.push(s);
+            if (toType.exists(Fn(_==s))) Context.warning("Duplicate key created, possible macro?", Context.currentPos());
+            else toType.push(s);
             var e = e.map(f);
 
             var ident = {expr:EConst(CIdent(s)), pos:cpos};
 
-            return macro {$ident = $e;};
+            return macro @:pos(e.pos) {$ident = $e;};
         }
 
         var ret_capture = null;
@@ -118,16 +117,24 @@ class TypeParser {
                 
                 {expr:EFunction(fname, {
                             ret:f.ret,
-                            params:f.params,
+                params:f.params,
                             args:f.args,
-                            expr:inner,
-                        }), pos:e.pos };
+                expr:inner,
+                            }), pos:e.pos };
             case EReturn(e) if (e != null):
                 if (!toType.exists(Fn(_ == ret_capture))) toType.push(ret_capture);
                 var retident = asIdent(ret_capture);
                 var e = e.map(loop);
                 var inner = macro {$retident = $e;};
                 {expr:EReturn(inner), pos:cpos};
+                
+            case EVars(_): e.map(loop);     //can't type statements
+                
+                /* We skip these for now since they cause issues! */
+            case EField(_, _): e.map(loop); //Tries to type packages
+            case EConst(_): e.map(loop);    //(part of the above fix)
+
+            case EBlock(_): e.map(loop);    //Causes missing return errors
             case _: 
                 capture_map(e, loop);
             }
@@ -159,7 +166,7 @@ class TypeParser {
 
         var typed = switch (typeAll) {
         case TAnonymous(t):
-            t.get().fields
+        t.get().fields
         .map(Fn({type:_.type, pos:get3(_.name)}));
         case _: throw "impossible";
         }
