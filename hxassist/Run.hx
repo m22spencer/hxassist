@@ -2,6 +2,7 @@ package hxassist;
 
 import ds.IList;
 import com.mindrocks.monads.instances.Prelude;
+import haxe.ds.Option;
 
 using sys.FileSystem;
 using Alg;
@@ -37,7 +38,7 @@ class Run {
                     Sys.exit(0);
                     readArgs(l);
                 case {"--source"; file; contents; l;}:
-                    vfs.modify(file, function(s) return utils.Base64.decode(contents));
+                    vfs.modify(file, function(s) return Some(utils.Base64.decode(contents)));
                     readArgs(l);
                 case {"--write"; l;}:
                     vfs.writeToFileSystem();

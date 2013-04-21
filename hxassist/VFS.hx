@@ -28,9 +28,12 @@ class VFS {
         }
     }
 
-    public function modify(file:String, fn:Option<String>->String) {
+    public function modify(file:String, fn:Option<String>->Option<String>) {
         var current = if (file.exists()) Some(file.getContent()); else None;
-        tempCache.set(toTempPath(file), fn(current));
+        switch (fn(current)) {
+        case Some(v): tempCache.set(toTempPath(file), v);
+        default: 
+        }
     }
 
     function toTempPath(file:String) {
