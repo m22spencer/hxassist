@@ -54,6 +54,7 @@ class TypeParser {
         }
     }
 
+    /*
     static var init = function() {
         var typer = forwardTypeExpression2(macro Lambda.mapi([3.5], function(i,x) return x+""));
         switch (typer(19, true)) {
@@ -61,6 +62,7 @@ class TypeParser {
         case _: trace('No type found');
         }
     }();
+    */
     
     /**
        Types all expressions within E
@@ -171,15 +173,8 @@ class TypeParser {
         case _: throw "impossible";
         }
 
-        var map = new haxe.ds.StringMap<Array<{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}>>();
-
-        function write(x:{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}) {
-            var key = x.pos.min + ":" + x.pos.max;
-            if (!map.exists(key)) { map.set(key,[]); }
-            map.get(key).push(x);
-        }
-        
-        typed.iter(Fn(write(_)));
+        var map:Map<String, Iterable<{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}>> =
+            Alg.toMapMulti(typed, function(e) return e.pos.min + ":" + e.pos.max);
 
         var types = map.array();
 
@@ -189,18 +184,17 @@ class TypeParser {
             return if (set.length == 0) None;
             else {
                 var types = set.first();
-                if (types.length == 1) Some(types.list().first().type);
+                if (types.count() == 1) Some(types.list().first().type);
                 else {
                     //This is a lambda expression
-                    var rettype:Type = if (types.exists(Fn(_.pos.argname == "ret"))) {
-                        //Value returning function
-                        var rett = types.filter(Fn(_.pos.argname == "ret"));
-                        types = types.filter(Fn(_.pos.argname != "ret"));
-                        rett.list().first().type;
-                    } else haxe.macro.ComplexTypeTools.toType(macro : Void);
+                    var funtypes = types.partition(Fn(_.pos.argname != "ret"));
 
-                    //FIXME this does not handle optional types yet
-                    Some(TFun(types.map(Fn({t:_.type, opt:false, name:_.pos.argname})), rettype));
+                    var rettype = if (funtypes._1.count()==0) haxe.macro.ComplexTypeTools.toType(macro :Void);
+                    else funtypes._1.first().type;
+
+                    var args = funtypes._0.map(Fn({t:_type, opt:false, name:_pos.argname}));
+
+                    Some(TFun(args.array(), rettype));
                 }
             }
         }
