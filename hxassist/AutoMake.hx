@@ -7,6 +7,8 @@ using sys.FileSystem;
 import hxassist.FileUtils.*;
 import sys.FileSystem.*;
 
+import neko.vm.Thread;
+
 using Lambda;
 
 class AutoMake {
@@ -15,10 +17,35 @@ class AutoMake {
         return function(args:Array<String>) {
             var cmdLine = ['--cwd', file_name_directory(hxmls), hxmls].concat(args);
             trace(cmdLine);
+
+            function consume() {
+                var main:Thread = Thread.readMessage(true);
+                var input:haxe.io.Input = Thread.readMessage(true);
+
+                var s = "";
+                while(true)
+                {
+                    try {
+                        s += String.fromCharCode(input.readByte());
+                    } catch (e:haxe.io.Eof) {
+                        main.sendMessage(s);
+                        break;
+                    }
+                }
+            }
+
+            var t1 = Thread.create(consume);
+            var t2 = Thread.create(consume);
+            t1.sendMessage(Thread.current());
+            t2.sendMessage(Thread.current());
             var proc = new sys.io.Process('haxe', cmdLine);
+            t1.sendMessage(proc.stdout);
+            t2.sendMessage(proc.stderr);
+
             proc.exitCode();
-            Sys.println(proc.stdout.readAll().toString());
-            Sys.println(proc.stderr.readAll().toString());
+
+            trace(Thread.readMessage(true));
+            Thread.readMessage(true);
         }
     }
 
