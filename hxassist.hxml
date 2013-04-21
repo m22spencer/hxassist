@@ -1,2 +1,3 @@
 -main hxassist.Run
 -neko Run.n
+-lib monax

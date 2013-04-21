@@ -3,6 +3,8 @@ package test;
 import haxe.macro.Expr;
 import haxe.macro.Context;
 using Lambda;
+using Alg;
+import Alg.Fn;
 
 class TestBuilder {
     /**
@@ -53,21 +55,39 @@ class TestBuilder {
     }
 
     macro public static function doCheck(s:String, i:Int) {
-
+        trace('Checking file $s');
         //OnGenerate is not called during --display mode. We have to use primative completion
         Context.onGenerate(function(types) {
+                var i = i;
                 for (type in types) {
                     switch (type) {
                     case TInst(t,_):
                         var t = t.get();
                         var file = Std.string(Context.getPosInfos(t.pos).file);
                         if (s == Context.getPosInfos(t.pos).file) {
-                            var expr = t.statics.get().filter(function(s) return s.name == "main")
-                                .array()[0].expr();
+                            trace('matched file');
+                            var fields = t.statics.get()
+                                .concat(t.fields.get())
+                                .concat(t.constructor!=null?[t.constructor.get()]:[]);
+                            var expr = fields.filter(function(s) return
+                                Context.getPosInfos(s.pos).let(function(_) return (_.min < i && _.max > i)))
+                                .array()[0];
+
+                            var expr = expr.expr();
 
                             var expr = Context.getTypedExpr(expr);
 
-                            trace(hxassist.TypeParser.typeExpression(i, expr));
+                            trace("Marker beginning " + sys.io.File.read(s, true).readAll().toString()
+                                .substr(i, 10));
+
+                            /*
+                            switch (hxassist.TypeParser.expressionBeginningAtPoint(i, expr)) {
+                            case Some(v): throw new haxe.macro.Printer().printExpr(v);
+                            case None: throw 'No expression found at point $i';
+                            }
+                            */
+
+                            trace(hxassist.TypeParser.forwardTypeExpression(i, expr));
                         }
                     default:
                     }

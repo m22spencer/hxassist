@@ -30,7 +30,7 @@ class TypeParser {
      */
     public static function forwardTypeExpression(point:Int, e:Expr) {
         //TODO: search for package on failure type(haxe.ds).Option fails, but should result: "package haxe.ds"
-        return switch (expressionAtPoint(point, e)) {
+        return switch (expressionBeginningAtPoint(point, e)) {
         case Some(matched):
             function loop(e)
                 return if (e == matched) macro (__typeme = $e);
@@ -44,8 +44,9 @@ class TypeParser {
     }
 
     public static function typeExpression(point:Int, e:Expr) {
-        return switch (expressionAtPoint(point, e)) {
+        return switch (expressionBeginningAtPoint(point, e)) {
         case Some(matched):
+            trace("Found expression at this point: " + matched);
             printType(Context.typeof(matched));
         case None: 'Unable to find expression at $point';
         }
@@ -63,6 +64,15 @@ class TypeParser {
         }
         loop(e);
         return (toMatch.expr==null)?None:Some(toMatch.expr);
+    }
+
+    public static function expressionBeginningAtPoint(point:Int, e:Expr) {
+        var matched = null;
+        function loop(e:Expr)
+            if (e.pos.getPosInfos().min == point) matched = e;
+            else e.iter(loop);
+        loop(e);
+        return (matched==null)?None:Some(matched);
     }
 
     static function exprToStr(e, ?pos:haxe.PosInfos) return new haxe.macro.Printer().printExpr(e);
