@@ -13,7 +13,8 @@ class Run {
     function new(args:Iterable<String>) {
         //Get lib path from end of args 
         var list = IList.ilist(args).reverse();
-        var libpath = list.head();
+        var expath = list.head();
+        Sys.setCwd(expath);
         var list = list.tail().reverse();
 
         function readArgs(args:IList<String>) {
@@ -21,15 +22,12 @@ class Run {
                 case {"-runTests"; l;}:
                     new test.TestMain();
                     readArgs(l);
-                case {"--type"; data; l;}:
-                    var sp = data.split("@");
-                    var pos = Std.parseInt(sp[1]);
-                    var file = sp[0];
-
-                    trace(pos);
+                case {"--type"; file; tpath; pos; l;}:
+                    var pos = Std.parseInt(pos);
 
                     AutoMake.fromFile(file)
-                        (["-dce", "no",  "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/", "--macro", 'test.TestBuilder.doCheck(\'$file\', $pos)']);
+                        (["-dce", "no",  "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/", "--macro",
+                            "haxe.macro.Compiler.addMetadata('@:build(test.TestBuilder.doBuildCheck("+pos+"))', '"+tpath+"')"]);
                 
                     Sys.exit(0);
                     readArgs(l);

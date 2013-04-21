@@ -70,38 +70,6 @@ class TestBuilder {
         #end
     }
 
-    macro public static function doCheck(s:String, i:Int) {
-        #if macro
-        //OnGenerate is not called during --display mode. We have to use primative completion
-        var s = s.fullPath();
-        Context.onGenerate(function(types) {
-                var i = i;
-                for (type in types) {
-                    switch (type) {
-                    case TInst(t,_):
-                        var t = t.get();
-                        var file = Std.string(Context.getPosInfos(t.pos).file);
-                        if (s == Context.getPosInfos(t.pos).file.fullPath()) {
-                            var fields = t.statics.get()
-                                .concat(t.fields.get())
-                                .concat(t.constructor!=null?[t.constructor.get()]:[]);
-                            var expr = fields.filter(function(s) return
-                                Context.getPosInfos(s.pos).let(function(_) return (_.min < i && _.max > i)))
-                                .array()[0];
-
-                            var expr = expr.expr();
-
-                            var expr = Context.getTypedExpr(expr);
-                        }
-                    default:
-                    }
-                }
-            });
-        #end
-
-        return macro null;
-    }
-
     public static function doBuildCheck(i:Int) {
 #if macro
         trace ('doing build check');
