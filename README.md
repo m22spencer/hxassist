@@ -11,3 +11,11 @@ OR haxelib git ...
 haxelib run hxassist --type "something/Module.hx" something.Module 299
 
 Will fix later to just allow something.Module@299 ... tired..
+
+
+
+
+
+(random stuff)
+
+typing during display mode will only work if display finds a valid completion point ++
