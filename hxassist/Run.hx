@@ -11,15 +11,16 @@ class Run {
 
    
     function new(args:Iterable<String>) {
-        var _0;
+        //Get lib path from end of args 
+        var list = IList.ilist(args).reverse();
+        var libpath = list.head();
+        var list = list.tail().reverse();
 
-        [0].map(function(x) { x; return x + "";});
-
-        
         function readArgs(args:IList<String>) {
             Alg.match(switch (args) {
-                case {"-runTests"; _;}:
+                case {"-runTests"; l;}:
                     new test.TestMain();
+                    readArgs(l);
                 case {"--type"; data; l;}:
                     var sp = data.split("@");
                     var pos = Std.parseInt(sp[1]);
@@ -30,12 +31,11 @@ class Run {
                 
                     Sys.exit(0);
                     readArgs(l);
-                case {cmd; l;}:
+                case {cmd; _;}:
                     trace('unknown argument $cmd');
-                    readArgs(l);
                 case {[];}:
                     });
         }
-        readArgs(IList.ilist(args));
+        readArgs(list);
     }
 }

@@ -1,0 +1,6 @@
+<project name="hxassist" url="http://github.com/m22spencer/hxassist" license="MIT">
+  <user name="m22spencer"/>
+  <tag v="cross"/>
+  <description>hxassist is an attempt add centralizing ide specific behavior, and more completion options to haxe.</description>
+  <version name="0.0">Initial 'haxelib release' for testing</version>
+</project>
