@@ -54,6 +54,7 @@ class TypeParser {
         }
     }
 
+    /*
     static var init = function() {
         var typer = forwardTypeExpression2(macro Lambda.mapi([3.5], function(i,x) return x+""));
         switch (typer(19, true)) {
@@ -61,7 +62,8 @@ class TypeParser {
         case _: trace('No type found');
         }
     }();
-
+    */
+    
     /**
        Types all expressions within E
        returns a lamda for matching a byte position to a type
@@ -130,7 +132,7 @@ class TypeParser {
                 capture_map(e, loop);
             }
         }
-        var capt = e.map(loop);
+        var capt = loop(e);
 
         var vdecl = {expr:EVars(toType.map(Fn({name:_, type:null, expr:null}))), pos:cpos};
         var odecl = {expr:EObjectDecl(toType.map(Fn({field:_, expr:{expr:EConst(CIdent(_)), pos:cpos}}))), pos:cpos};

@@ -77,16 +77,14 @@ class TestBuilder {
                             var expr = Context.getTypedExpr(expr);
 
                             trace("Marker beginning " + sys.io.File.read(s, true).readAll().toString()
-                                .substr(i, 10));
+                                .substr(i, 50));
 
-                            /*
-                            switch (hxassist.TypeParser.expressionBeginningAtPoint(i, expr)) {
-                            case Some(v): throw new haxe.macro.Printer().printExpr(v);
-                            case None: throw 'No expression found at point $i';
+                            var typer = hxassist.TypeParser.forwardTypeExpression2(expr);
+
+                            switch (typer(i, false)) {
+                            case Some(v): trace(v);
+                            case None: trace("No type found at point");
                             }
-                            */
-
-                            trace(hxassist.TypeParser.forwardTypeExpression(i, expr));
                         }
                     default:
                     }
