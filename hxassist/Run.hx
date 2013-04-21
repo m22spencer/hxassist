@@ -32,7 +32,9 @@ class Run {
                     var pos = Std.parseInt(pos);
 
                     AutoMake.fromFile(file)
-                        (["-dce", "no",  "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/", "--macro",
+                        (["-dce", "no",  "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/",
+                            "--display", '"$file@0"',
+                            "--macro",
                             "haxe.macro.Compiler.addMetadata('@:build(test.TestBuilder.doBuildCheck("+pos+"))', '"+tpath+"')"]);
                 
                     Sys.exit(0);
