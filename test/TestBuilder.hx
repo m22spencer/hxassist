@@ -55,7 +55,6 @@ class TestBuilder {
     }
 
     macro public static function doCheck(s:String, i:Int) {
-        trace('Checking file $s');
         //OnGenerate is not called during --display mode. We have to use primative completion
         Context.onGenerate(function(types) {
                 var i = i;
