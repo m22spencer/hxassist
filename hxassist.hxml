@@ -1,3 +1,6 @@
 -main hxassist.Run
 -neko Run.n
+-cp Macro
 -lib monax
+-D dump=pretty
+-D MONAX_OPTIMIZE
