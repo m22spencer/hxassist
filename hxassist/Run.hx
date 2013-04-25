@@ -1,7 +1,10 @@
 package hxassist;
 
 import ds.IList;
-import com.mindrocks.monads.instances.Prelude;
+using com.mindrocks.monads.instances.Prelude;
+import com.mindrocks.monads.Monad.dO in DO;
+using hxassist.Monads;
+
 import haxe.ds.Option;
 
 using sys.FileSystem;
@@ -28,17 +31,35 @@ class Run {
                 case {"-runTests"; l;}:
                     new test.TestMain();
                     readArgs(l);
-                case {"--type"; file; tpath; pos; l;}:
+                case {"--type"; file; tpath; pos; [];}:
                     var pos = Std.parseInt(pos);
 
                     AutoMake.fromFile(file)
                         (["-dce", "no",  "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/",
-                            "--display", '"$file@0"',
                             "--macro",
-                            "haxe.macro.Compiler.addMetadata('@:build(test.TestBuilder.doBuildCheck("+pos+"))', '"+tpath+"')"]);
+                            "hxassist.MacroBuilder.typeField2("+pos+"))', '"+tpath+"')"], vfs.getTempDir());
                 
                     Sys.exit(0);
-                    readArgs(l);
+                    DO({
+                            source <= vfs.read(file);
+                            switch (source.charAt(pos-1)) {
+                            case ".", "(": //Normal completion
+                                AutoMake.fromFile(file)
+                                    (["-D", "no-copt", "--display", '$file@$pos']);
+                                None;
+                            case " ": //Toplevel completion
+                                vfs.modify(file, function(s) return DO({
+                                            contents <= s;
+                                            ret(contents.substr(0,pos) + "{hxassist.MacroBuilder.toplevel();}" + contents.substr(pos));
+                                        }));
+                                vfs.writeToFileSystem();
+                                AutoMake.fromFile(file)
+                                    (["-D", "no-copt"], vfs.getTempDir());
+                                None;
+                            case c: throw 'cannot complete on character $c';
+                            }
+                        });
+                    Sys.exit(0);
                 case {"--source"; file; contents; l;}:
                     vfs.modify(file, function(s) return Some(utils.Base64.decode(contents)));
                     readArgs(l);

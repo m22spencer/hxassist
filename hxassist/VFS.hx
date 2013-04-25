@@ -21,6 +21,10 @@ class VFS {
         classpaths.push(classpath.sanitize());
     }
 
+    public function getTempDir() {
+        return tempDir.fullPath().sanitize();
+    }
+
     public function writeToFileSystem() {
         for (file in tempCache.keys()) {
             var contents = tempCache.get(file);
@@ -29,11 +33,17 @@ class VFS {
     }
 
     public function modify(file:String, fn:Option<String>->Option<String>) {
-        var current = if (file.exists()) Some(file.getContent()); else None;
+        var current = read(file); 
         switch (fn(current)) {
         case Some(v): tempCache.set(toTempPath(file), v);
         default: 
         }
+    }
+
+    public function read(file:String):Option<String> {
+        var tempPath = toTempPath(file);
+        return if (tempCache.exists(tempPath)) Some(tempCache.get(tempPath));
+        else if (file.exists()) Some(file.getContent()) else None;
     }
 
     function toTempPath(file:String) {

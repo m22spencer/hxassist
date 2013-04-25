@@ -14,8 +14,12 @@ using Lambda;
 class AutoMake {
     public static function fromFile(file:String) {
         var hxmls = getHxmls(file).list().first();
-        return function(args:Array<String>) {
-            var cmdLine = ['--cwd', file_name_directory(hxmls), hxmls].concat(args);
+        return function(args:Array<String>, ?tempDir:String) {
+
+            var cmdLine = ['--cwd', file_name_directory(hxmls)]
+                .concat(tempDir==null?[]:['-cp', tempDir])
+                .concat([hxmls])
+                .concat(args);
             trace(cmdLine);
 
             function consume() {
@@ -45,7 +49,7 @@ class AutoMake {
             proc.exitCode();
 
             trace(Thread.readMessage(true));
-            Thread.readMessage(true);
+            trace(Thread.readMessage(true));
         }
     }
 
