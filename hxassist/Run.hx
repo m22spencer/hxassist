@@ -31,13 +31,13 @@ class Run {
                 case {"-runTests"; l;}:
                     new test.TestMain();
                     readArgs(l);
-                case {"--type"; file; tpath; pos; [];}:
+                case {"--type"; file; pos; [];}:
                     var pos = Std.parseInt(pos);
 
                     AutoMake.fromFile(file)
-                        (["-dce", "no",  "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/",
+                        (["-dce", "no", "--no-inline", "--no-opt", "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/",
                             "--macro",
-                            "haxe.macro.Compiler.addMetadata('@:build(test.TestBuilder.doBuildCheck("+pos+"))', '"+tpath+"')"], vfs.getTempDir());
+                            'hxassist.MacroBuilder.type(\'$file\',\'$pos\')'], vfs.getTempDir());
                 
                     Sys.exit(0);
                 case {"--complete"; file; pos; [];}:
@@ -47,7 +47,7 @@ class Run {
                             switch (source.charAt(pos-1)) {
                             case ".", "(": //Normal completion
                                 AutoMake.fromFile(file)
-                                    (["-D", "no-copt", "--display", '$file@$pos']);
+                                    (["-D", "no-copt",  "--display", '$file@$pos']);
                                 None;
                             case " ": //Toplevel completion
                                 vfs.modify(file, function(s) return DO({

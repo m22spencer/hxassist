@@ -10,6 +10,60 @@ using haxe.macro.ComplexTypeTools;
 class MacroBuilder {
 #if macro
 
+    static function containedBy(point, pos) {
+        var p = Context.getPosInfos(pos);
+        return (point >= p.min && point < p.max);
+    }
+
+    static function fileContainedBy(file:String, pos) {
+        var p = Context.getPosInfos(pos);
+        return (FileUtils.files_match(p.file,file));
+    }
+
+    static function fileAndPosToFixedExpr(file:String, pos:Int, cb:Expr->Void) {
+        trace(file);
+        var fcb = fileContainedBy.bind(file);
+        var pcb = containedBy.bind(pos);
+        var contained = function(p) return fcb(p) && pcb(p);
+        Context.onGenerate(function(types) {
+                for (type in types) {
+                    //trace(type);
+                switch (type) {
+                case TInst(t,_) if (contained(t.get().pos)):
+                    var t = t.get();
+                    var fields = t.statics.get().concat(t.fields.get());
+                    if (t.constructor!=null) fields = fields.concat([t.constructor.get()]);
+
+                    var matched = fields.filter(function(field) return pcb(field.pos));
+                    switch (matched.count()) {
+                    case 0: Context.error("Could not find field containing point", t.pos);
+                    case 1:
+                        var field = matched.list().first();
+                        if (field.expr == null) Context.error("Matched field has no expr", t.pos);
+                        else cb(fixTypedExprExpr(Context.getTypedExpr(field.expr())));
+                    case _: Context.error("Point somehow matched multiple fields.", t.pos);
+                    }
+                default:
+
+                }
+                }
+            });
+    }
+
+    macro public static function type(file:String, pos:String) {
+        var pos = Std.parseInt(pos);
+        fileAndPosToFixedExpr(file, pos, function(exp) {
+                var typer = TypeParser.forwardTypeExpression2(exp);
+                switch (typer(pos, false)) {
+                case Some(v): trace(TypeParser.printType(v));
+                case None: trace("No type found");
+                }
+                
+            });
+        return macro null;
+    }
+
+    /*
     macro public static function typeField(tpath:String, field:String) {
         Context.onGenerate(function(types) {
                 for (type in types) {
@@ -48,6 +102,7 @@ class MacroBuilder {
         }
         return macro null;
     }
+    */
     
     //build macro
     public static function findDeclaration(pos:Int) {
@@ -75,7 +130,7 @@ class MacroBuilder {
                 args:args
             };
             mk(EFunction(name, fun));
-            case EDisplayNew(t): throw "NYI";
+            case EDisplayNew(_): throw "NYI";
             case ECheckType(e, t): mk(ECheckType(e, fixCT(t)));
             case ECast(e, t): mk(ECast(e, fixCT(t)));
             default: e;

@@ -14,6 +14,9 @@ using haxe.macro.ExprTools;
 using Lambda;
 using Std;
 
+using hxassist.Monads;
+
+
 class TypeParser {
     static var last:String = "Nothing";
     macro public static function check(point:Int, e:Expr) {
@@ -91,8 +94,9 @@ class TypeParser {
         var cpos = Context.currentPos();
         function asIdent(s:String) return {expr:EConst(CIdent(s)), pos:cpos};
         var toType:Array<String> = [];
-        function capture_name(e:Expr)
+        function capture_name(e:Expr) {
             return e.pos.getPosInfos().let(Fn('__type__${_.min}_${_.max}'));
+        }
 
         function capture_map(e:Expr, f:Expr->Expr) {
             var s = capture_name(e);
@@ -140,6 +144,7 @@ class TypeParser {
             case EConst(CIdent(_)): e.map(loop);    //(part of the above fix)
 
             case EBlock(_): e.map(loop);    //Causes missing return errors
+            case EDisplay(e, _): e.map(loop);
             case _: 
                 capture_map(e, loop);
             }
@@ -170,6 +175,7 @@ class TypeParser {
                         var eval = macro { $vdecl; $capt; $ident; };
                         Context.typeof(eval);
                     } catch(e:Dynamic) {
+                        trace("Unable to type: " + e);
                         null;
                     }
                     {type:type, pos:get3(val)};
@@ -197,6 +203,8 @@ class TypeParser {
         case _: throw "impossible";
         }
             */
+
+            trace(typed);
 
         var map = new haxe.ds.StringMap<Array<{type:haxe.macro.Type, pos:{min:Int, max:Int, argname:String}}>>();
 
@@ -231,6 +239,7 @@ class TypeParser {
                 }
             }
         }
+
     }
 
     public static function typeExpression(point:Int, e:Expr) {

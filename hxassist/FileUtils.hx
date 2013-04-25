@@ -10,8 +10,10 @@ import haxe.ds.Option;
 using Lambda;
 
 class FileUtils {
-    public static function sanitize(file:String)
-        return StringTools.replace(file, "\\", "/");
+    public static function sanitize(file:String) {
+        var file = StringTools.replace(file, "\\", "/");
+        return file; //StringTools.replace(file, String.fromCharCode(13), "");
+    }
 
     /**
        Get the directory part of FILE
@@ -65,6 +67,10 @@ class FileUtils {
 
     public static function file_represents_dir(file:String) {
         return file.lastIndexOf("/") == file.length - 1;
+    }
+
+    public static function files_match(a:String, b:String) {
+        return sanitize(a).fullPath() == sanitize(b).fullPath();
     }
 
     /**
