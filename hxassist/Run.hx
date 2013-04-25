@@ -37,9 +37,11 @@ class Run {
                     AutoMake.fromFile(file)
                         (["-dce", "no",  "-D", "no-copt", "-cp", "C:/Users/Matthew/Documents/Github/hxassist/",
                             "--macro",
-                            "hxassist.MacroBuilder.typeField2("+pos+"))', '"+tpath+"')"], vfs.getTempDir());
+                            "haxe.macro.Compiler.addMetadata('@:build(test.TestBuilder.doBuildCheck("+pos+"))', '"+tpath+"')"], vfs.getTempDir());
                 
                     Sys.exit(0);
+                case {"--complete"; file; pos; [];}:
+                    var pos = Std.parseInt(pos);
                     DO({
                             source <= vfs.read(file);
                             switch (source.charAt(pos-1)) {
