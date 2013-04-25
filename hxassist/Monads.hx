@@ -4,37 +4,67 @@ import haxe.macro.Expr;
 import haxe.macro.Context;
 import com.mindrocks.monads.Monad;
 
+import haxe.ds.Option;
+
 enum Either<LVal,RVal> {
     Left(l:LVal);
     Right(r:RVal);
 }
-
 
 class ErrorM {
     macro public static function dO(body:Expr) {
         return Monad._dO("ErrorM", body, Context, Optimizer.optimize.bind("ErrorM"));
     }
 
-    public static function monad<T,K>(o:Either<T,K>)
+    inline public static function monad<T,K>(o:Either<T,K>)
         return ErrorM;
 
-    public static function ret<L,R>(x:R)
+    inline public static function ret<L,R>(x:R)
         return Right(x);
 
-    public static function throwError<L,R>(err:L)
+    inline public static function throwError<L,R>(err:L)
         return Left(err);
 
-    public static function map <L,T,K> (e:Either<L,T>, f:T->K):Either<L,K> {
+    inline public static function tryRet<L,R>(f:Void->R)
+        return try Right(f()) catch(e:Dynamic) Left(e);
+
+    inline public static function map <L,T,K> (e:Either<L,T>, f:T->K):Either<L,K> {
         return switch (e) {
         case Right(l): Right(f(l));
         case Left(r): Left(r);
         }
     }
 
-    public static function flatMap <L,T,K> (e:Either<L,T>, f:T->Either<L,K>):Either<L,K> {
+    inline public static function flatMap <L,T,K> (e:Either<L,T>, f:T->Either<L,K>):Either<L,K> {
         return switch (e) {
         case Right(l): f(l);
         case Left(r): Left(r);
+        }
+    }
+}
+
+class OptionM {
+    macro public static function dO(body:Expr) {
+        return Monad._dO("OptionM", body, Context, Optimizer.optimize.bind("OptionM"));
+    }
+
+    inline public static function monad<T>(o:Option<T>)
+        return OptionM;
+
+    inline public static function ret<T>(x:T)
+        return Some(x);
+
+    inline public static function map<T,K>(o:Option<T>, f:T->K):Option<K> {
+        return switch (o) {
+        case Some(v): Some(f(v));
+        case None: None;
+        }
+    }
+
+    inline public static function flatMap<T,K>(o:Option<T>, f:T->Option<K>):Option<K> {
+        return switch (o) {
+        case Some(v): f(v);
+        case None: None;
         }
     }
 }
